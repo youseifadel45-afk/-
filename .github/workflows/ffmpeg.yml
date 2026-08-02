@@ -1,0 +1,30 @@
+name: Learn GitHub Actions
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show system info
+        run: |
+          uname -a
+          pwd
+          ls -la
+
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Check FFmpeg
+        run: |
+          ffmpeg -version
+
+      - name: Done
+        run: echo "FFmpeg is working successfully."
