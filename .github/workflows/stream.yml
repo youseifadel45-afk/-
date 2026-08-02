@@ -1,4 +1,4 @@
-name: Learn GitHub Actions
+name: Mix Sad
 
 on:
   workflow_dispatch:
