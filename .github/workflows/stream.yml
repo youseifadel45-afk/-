@@ -1,4 +1,4 @@
-name: Mix Sad
+name: Mix sad
 
 on:
   workflow_dispatch:
@@ -14,15 +14,20 @@ jobs:
       - name: Install FFmpeg
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg
+          sudo apt-get install -y ffmpeg python3-pip
+          pip3 install gdown
 
       - name: Check FFmpeg
         run: |
           ffmpeg -version
 
+      - name: Download audio from Google Drive
+        run: |
+          gdown "https://drive.google.com/uc?id=1mYrzVTc3DrIRQxXt1fI1ljEB_HictEf2" -O audio.mp3
+
       - name: Stream
         run: |
-          ffmpeg -re -i "https://drive.google.com/uc?export=download&id=1mYrzVTc3DrIRQxXt1fI1ljEB_HictEf2" \
+          ffmpeg -re -stream_loop -1 -i "audio.mp3" \
             -vn \
             -c:a aac \
             -b:a 192k \
