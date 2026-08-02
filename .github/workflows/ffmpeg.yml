@@ -1,35 +1,35 @@
 name: Learn GitHub Actions
 
 on:
-  workflow_dispatch:
+workflow_dispatch:
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
+test:
+runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+steps:  
+  - name: Checkout  
+    uses: actions/checkout@v4  
 
-      - name: Install FFmpeg
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg
+  - name: Install FFmpeg  
+    run: |  
+      sudo apt-get update  
+      sudo apt-get install -y ffmpeg  
 
-      - name: Check FFmpeg
-        run: |
-          ffmpeg -version
+  - name: Check FFmpeg  
+    run: |  
+      ffmpeg -version  
 
-      - name: Stream
-        run: |
-          ffmpeg -re -i "https://stream.manhajonline.com/quran/stream" \
-            -vn \
-            -c:a aac \
-            -b:a 192k \
-            -ar 44100 \
-            -ac 2 \
-            -f flv "rtmps://dc4-1.rtmp.t.me/s/3858287888:aMIwoGfAA7q_0IwVJqw0fA"
+  - name: Stream  
+    run: |  
+      ffmpeg -re -i "https://stream.manhajonline.com/quran/stream" \  
+        -vn \  
+        -c:a aac \  
+        -b:a 192k \  
+        -ar 44100 \  
+        -ac 2 \  
+        -f flv "rtmps://dc4-1.rtmp.t.me/s/2599776082:EhXvPrErk4Py95iXkP7rgw"  
 
-      - name: Done
-        run: |
-          echo "Finished."
+  - name: Done  
+    run: |  
+      echo "Finished."
