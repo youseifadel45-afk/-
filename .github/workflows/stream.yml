@@ -29,13 +29,14 @@ jobs:
         run: |
           ffmpeg -re -stream_loop -1 -i "audio.mp3" \
             -vn \
-            -af "volume=2,aresample=async=1" \
+            -af "volume=2" \
             -c:a aac \
-            -b:a 192k \
-            -ar 44100 \
+            -b:a 128k \
+            -ar 48000 \
             -ac 2 \
-            -flush_packets 0 \
-            -f flv "rtmps://dc4-1.rtmp.t.me/s/2599776082:EhXvPrErk4Py95iXkP7rgw"
+            -f flv \
+            -flvflags no_duration_filesize \
+            "rtmps://dc4-1.rtmp.t.me/s/2599776082:EhXvPrErk4Py95iXkP7rgw"
 
       - name: Done
         run: |
