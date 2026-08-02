@@ -26,5 +26,14 @@ jobs:
         run: |
           ffmpeg -version
 
+      - name: Record 30 seconds
+        run: |
+          ffmpeg -re -i "https://stream.manhajonline.com/quran/stream" -t 30 -c:a aac -b:a 192k test.m4a
+
+      - name: Show output file
+        run: |
+          ls -lh test.m4a
+
       - name: Done
-        run: echo "FFmpeg is working successfully."
+        run: |
+          echo "FFmpeg is working successfully."
