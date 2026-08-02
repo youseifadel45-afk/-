@@ -20,20 +20,16 @@ jobs:
         run: |
           ffmpeg -version
 
-      - name: Record 30 seconds
+      - name: Stream
         run: |
-          ffmpeg -re -i "https://stream.manhajonline.com/quran/stream" -t 30 -c:a aac -b:a 192k test.m4a
-
-      - name: Show output file
-        run: |
-          ls -lh test.m4a
-
-      - name: Upload audio
-        uses: actions/upload-artifact@v4
-        with:
-          name: recorded-audio
-          path: test.m4a
+          ffmpeg -re -i "https://stream.manhajonline.com/quran/stream" \
+            -vn \
+            -c:a aac \
+            -b:a 192k \
+            -ar 44100 \
+            -ac 2 \
+            -f flv "rtmps://dc4-1.rtmp.t.me/s/3858287888:aMIwoGfAA7q_0IwVJqw0fA"
 
       - name: Done
         run: |
-          echo "FFmpeg is working successfully."
+          echo "Finished."
