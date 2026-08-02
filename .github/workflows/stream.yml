@@ -1,0 +1,35 @@
+name: Learn GitHub Actions
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Check FFmpeg
+        run: |
+          ffmpeg -version
+
+      - name: Stream
+        run: |
+          ffmpeg -re -i "https://drive.google.com/uc?export=download&id=1mYrzVTc3DrIRQxXt1fI1ljEB_HictEf2" \
+            -vn \
+            -c:a aac \
+            -b:a 192k \
+            -ar 44100 \
+            -ac 2 \
+            -f flv "rtmps://dc4-1.rtmp.t.me/s/2599776082:EhXvPrErk4Py95iXkP7rgw"
+
+      - name: Done
+        run: |
+          echo "Finished."
