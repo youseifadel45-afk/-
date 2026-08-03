@@ -12,6 +12,11 @@ from telebot import types
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 ADMIN_ID = 8358047016  # ID المطور الخاص بك
 
+# إعدادات GitHub API لتشغيل البث بنقرة زر
+GH_PAT = os.getenv("GH_PAT")  # Personal Access Token
+REPO_OWNER = os.getenv("REPO_OWNER")  # اسم مستخدم GitHub
+REPO_NAME = os.getenv("REPO_NAME")    # اسم المستودع
+
 if not BOT_TOKEN:
     raise ValueError("⚠️ خطأ: لم يتم العثور على BOT_TOKEN في متغيرات البيئة!")
 
@@ -50,7 +55,6 @@ def register_user(user):
         db["files"][uid] = []
         save_db(db)
         
-        # إشعار المطور بدخول مستخدم جديد
         info = (
             f"🔔 **مستخدم جديد دخل البوت!**\n\n"
             f"👤 **الاسم:** {user.first_name} {user.last_name or ''}\n"
@@ -69,7 +73,7 @@ def save_user_file(user_id, file_url, file_type, file_name):
     
     file_entry = {
         "url": file_url,
-        "type": file_type,  # 'audio' or 'video'
+        "type": file_type,
         "name": file_name,
         "date": time.strftime("%Y-%m-%d %H:%M")
     }
@@ -99,14 +103,14 @@ def setup_bot_commands():
 
 setup_bot_commands()
 
-# ==================== الرفع على السحابة (Catbox/Litterbox) ====================
+# ==================== الرفع على السحابة ====================
 def upload_to_litterbox(file_path):
     url = "https://litterbox.catbox.moe/resources/internals/api.php"
     try:
         cmd = [
             "curl", "-s", "-k", "-A", USER_AGENT,
             "-F", "reqtype=fileupload",
-            "-F", "time=72h", # إبقاء الملف لمدة 3 أيام
+            "-F", "time=72h",
             "-F", f"fileToUpload=@{file_path}",
             url
         ]
@@ -120,7 +124,7 @@ def upload_to_litterbox(file_path):
     except Exception as e:
         return False, f"خطأ بالاتصال: {str(e)}"
 
-# ==================== لوحات الأزرار (Keyboards) ====================
+# ==================== لوحات الأزرار ====================
 def main_keyboard(user_id):
     markup = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
     btn_stream = types.KeyboardButton("🎬 إنشاء بث جديد")
@@ -148,9 +152,9 @@ def send_welcome(message):
     register_user(message.from_user)
     welcome_txt = (
         f"أهلاً بك يا **{message.from_user.first_name}** في بوت إنشاء وتجهيز البث المباشر 📡\n\n"
-        "📤 **لرفع ملف:** أرسل أي ملف (فيديو، صوت، موسيقى) وسيتم حظفظه ورفعه تلقائياً.\n"
+        "📤 **لرفع ملف:** أرسل أي ملف (فيديو، صوت، موسيقى) وسيتم حفظه ورفعه تلقائياً.\n"
         "🎬 **لإنشاء بث:** اضغط على زر '🎬 إنشاء بث جديد'.\n"
-        "📁 **لمعاينه ملفاتك:** اضغط على زر '📁 ملفاتي'.\n"
+        "📁 **لمعاينة ملفاتك:** اضغط على زر '📁 ملفاتي'.\n"
         "👇 استخدم الأزرار أسفله للتنقل:"
     )
     bot.send_message(message.chat.id, welcome_txt, reply_markup=main_keyboard(message.from_user.id), parse_mode="Markdown")
@@ -163,7 +167,7 @@ def show_help(message):
         "📖 **تعليمات الاستخدام:**\n\n"
         "1️⃣ أرسل أي فيديو أو ملف صوتي للبوت لرفعه على السحابة وحفظه في حسابك.\n"
         "2️⃣ اختر '🎬 إنشاء بث جديد' واتبع الخطوات لاختيار الجودة، الصوت، وإدخال سيرفر البث.\n"
-        "3️⃣ سيعطيك البوت كود تشغيل جاهز للـ GitHub Actions للعمل 24/7 أو للـ CMD."
+        "3️⃣ سيعطيك البوت زر لترغيل البث مباشرة على GitHub Actions أو أمر جاهز للـ CMD."
     )
     bot.send_message(message.chat.id, help_text, parse_mode="Markdown")
 
@@ -211,7 +215,7 @@ def process_delete_file(message):
     else:
         bot.send_message(message.chat.id, "❌ **لم يتم العثور على هذا الرابط في ملفاتك!**", parse_mode="Markdown")
 
-# ==================== قسم لوحة التحكم (ADMIN) ====================
+# ==================== قسم لوحة التحكم ====================
 @bot.message_handler(func=lambda msg: msg.text == "⚙️ لوحة التحكم" and msg.from_user.id == ADMIN_ID)
 def admin_panel(message):
     markup = types.InlineKeyboardMarkup(row_width=2)
@@ -278,7 +282,6 @@ def handle_uploads(message):
         file_info = bot.get_file(media_obj.file_id)
         file_url = f"https://api.telegram.org/file/bot{BOT_TOKEN}/{file_info.file_path}"
         
-        # تنزيل مؤقت
         temp_path = f"temp_{message.message_id}_{file_name}"
         res = requests.get(file_url, stream=True)
         with open(temp_path, "wb") as f:
@@ -306,7 +309,7 @@ def handle_uploads(message):
     except Exception as e:
         bot.edit_message_text(f"❌ حدث خطأ أثناء المعالجة: `{str(e)}`", chat_id=chat_id, message_id=status_msg.message_id, parse_mode="Markdown")
 
-# ==================== معالج معالج إنشاء البث المباشر (Stream Wizard) ====================
+# ==================== معالج إنشاء البث المباشر ====================
 stream_sessions = {}
 
 @bot.message_handler(func=lambda msg: msg.text == "🎬 إنشاء بث جديد")
@@ -320,20 +323,19 @@ def start_stream_wizard(message):
         types.InlineKeyboardButton("🎬 بث فيديو", callback_data="st_type_video"),
         types.InlineKeyboardButton("🎧 بث صوتي", callback_data="st_type_audio")
     )
-    bot.send_message(message.chat.id, "🎥 **اختر نوع البث الذي ترغب بشرائه/إنشائه:**", reply_markup=markup, parse_mode="Markdown")
+    bot.send_message(message.chat.id, "🎥 **اختر نوع البث الذي ترغب بإنشائه:**", reply_markup=markup, parse_mode="Markdown")
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("st_type_"))
 def step_stream_type(call):
     uid = call.from_user.id
-    st_type = call.data.split("_")[-1]  # 'video' or 'audio'
+    st_type = call.data.split("_")[-1]
     stream_sessions[uid]["type"] = st_type
     
-    # اقتراح روابط ملفاته المرفوعة
     uid_str = str(uid)
     user_files = [f for f in db["files"].get(uid_str, []) if f["type"] == st_type]
     
     markup = types.InlineKeyboardMarkup(row_width=1)
-    for f in user_files[:5]: # عرض أول 5 ملفات
+    for f in user_files[:5]:
         markup.add(types.InlineKeyboardButton(f"📁 {f['name']}", callback_data=f"st_file_select"))
         
     bot.edit_message_text(
@@ -416,7 +418,6 @@ def step_stream_key(message):
     data = stream_sessions[uid]
     full_rtmp = f"{data['rtmp'].rstrip('/')}/{data['key']}"
     
-    # بناء أمر FFmpeg للـ CMD
     if data["type"] == "video":
         ffmpeg_cmd = f'ffmpeg -re -stream_loop -1 -i "{data["url"]}" -c:v libx264 -preset veryfast -b:v 2500k -maxrate 2500k -bufsize 5000k -pix_fmt yuv420p -g 50 -af "volume={data["vol"]}" -c:a aac -b:a {data["bitrate"]} -ar 44100 -ac 2 -f flv "{full_rtmp}"'
     else:
@@ -427,22 +428,73 @@ def step_stream_key(message):
         "💻 **أمر التشغيل عبر الـ CMD / Linux:**\n"
         f"```bash\n{ffmpeg_cmd}\n```\n\n"
         "🚀 **التشغيل عبر GitHub Actions (24/7):**\n"
-        "قام البوت بتوليد ملف `stream.yml` جاهز للتكرار والتشغيل تلقائياً كل 6 ساعات دون انقطاع!"
+        "اضغط على الزر أدناه لإرسال البث وإضافته إلى حالة (Running) على سيرفرات GitHub مباشرة!"
     )
     
-    bot.send_message(message.chat.id, response_text, parse_mode="Markdown")
+    # إضافة زر التشغيل المباشر
+    markup = types.InlineKeyboardMarkup()
+    btn_run = types.InlineKeyboardButton("🚀 بدء البث الآن (Start Stream)", callback_data=f"run_gh_stream")
+    markup.add(btn_run)
     
-    # إشعار للمطور بخطوة إنشاء البث
-    notify_text = f"🎬 **قام المستخدم @{message.from_user.username} بإنشاء إعدادات بث جديد!**"
-    try: bot.send_message(ADMIN_ID, notify_text)
-    except: pass
+    bot.send_message(message.chat.id, response_text, reply_markup=markup, parse_mode="Markdown")
 
-# ==================== حلقة تشغيل البوت مع التجاوز الأوتوماتيكي للأخطاء ====================
-print("✅ البوت يعمل الآن بنجاح مع تجاوز كافة الأخطاء...")
+# ==================== تشغيل الـ Stream تلقائياً عبر GitHub API ====================
+@bot.callback_query_handler(func=lambda call: call.data == "run_gh_stream")
+def trigger_github_stream(call):
+    uid = call.from_user.id
+    if uid not in stream_sessions or "url" not in stream_sessions[uid]:
+        bot.answer_callback_query(call.id, "❌ لم يتم العثور على جلسة بث نشطة!", show_alert=True)
+        return
+
+    data = stream_sessions[uid]
+    full_rtmp = f"{data['rtmp'].rstrip('/')}/{data['key']}"
+    
+    bot.answer_callback_query(call.id, "⏳ جاري إرسال إشارة البث إلى GitHub Actions...")
+    
+    # طلب لـ GitHub API لتشغيل workflow_dispatch
+    url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/actions/workflows/stream.yml/dispatches"
+    headers = {
+        "Authorization": f"Bearer {GH_PAT}",
+        "Accept": "application/vnd.github+json"
+    }
+    payload = {
+        "ref": "main",  # أو الفرع الرئيسي master
+        "inputs": {
+            "media_url": data["url"],
+            "rtmp_url": full_rtmp,
+            "volume": data["vol"],
+            "bitrate": data["bitrate"]
+        }
+    }
+    
+    try:
+        res = requests.post(url, headers=headers, json=payload)
+        if res.status_code == 24:
+            bot.send_message(
+                call.message.chat.id,
+                "✅ **تم إطلاق البث بنجاح!**\n\n"
+                "🟢 حالة البث الآن: `Running` على سيرفرات GitHub.\n"
+                "📡 يمكنك التحقق من البث عبر قناتك أو منصتك الآن.",
+                parse_mode="Markdown"
+            )
+        else:
+            bot.send_message(
+                call.message.chat.id,
+                f"❌ **فشل إطلاق البث تلقائياً!**\n"
+                f"كود الاستجابة: `{res.status_code}`\n"
+                f"التفاصيل: `{res.text}`\n\n"
+                f"💡 تأكد من ضبط الـ Secrets (`GH_PAT`, `REPO_OWNER`, `REPO_NAME`) في GitHub.",
+                parse_mode="Markdown"
+            )
+    except Exception as e:
+        bot.send_message(call.message.chat.id, f"❌ حدث خطأ أثناء الاتصال بـ GitHub API: `{str(e)}`", parse_mode="Markdown")
+
+# ==================== حلقة تشغيل البوت ====================
+print("✅ البوت يعمل بنجاح مع إضافة ميزة التشغيل التلقائي للبث...")
 
 while True:
     try:
         bot.polling(none_stop=True, timeout=60, long_polling_timeout=60)
     except Exception as e:
-        print(f"⚠️ حدث خطأ في الاتصال، إعادة التشغيل تلقائياً: {e}")
+        print(f"⚠️ خطأ بالاتصال، إعادة التوصيل: {e}")
         time.sleep(3)
