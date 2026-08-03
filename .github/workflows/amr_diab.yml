@@ -1,0 +1,39 @@
+name: Amr Diab
+
+on:
+  workflow_dispatch:
+
+jobs:
+  stream:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Download Media File
+        run: |
+          curl -L -o "media_file" "https://archive.org/download/telegram-stream-cloud-06-----------------mp3/06 - علم قلبي غرام.mp3"
+
+      - name: Start Stream
+        run: |
+          ffmpeg -re -stream_loop -1 -i "media_file" \
+            -vn \
+            -af "volume=2" \
+            -c:a aac \
+            -b:a 128k \
+            -ar 48000 \
+            -ac 2 \
+            -f flv \
+            -flvflags no_duration_filesize \
+            "rtmps://dc4-1.rtmp.t.me/s/3858287888:aMIwoGfAA7q_0IwVJqw0fA"
+
+      - name: Done
+        run: |
+          echo "Finished."
+
