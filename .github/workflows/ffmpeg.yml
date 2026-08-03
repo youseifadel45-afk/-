@@ -1,10 +1,10 @@
-name: Learn GitHub Actions
+name: عمرو دياب
 
 on:
   workflow_dispatch:
 
 jobs:
-  test:
+  stream:
     runs-on: ubuntu-latest
 
     steps:
@@ -16,19 +16,22 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ffmpeg
 
-      - name: Check FFmpeg
+      - name: Download Media File
         run: |
-          ffmpeg -version
+          curl -L -o "media_file" "https://archive.org/download/telegram-stream-cloud-06-----------------mp3/06 - علم قلبي غرام.mp3"
 
-      - name: Stream
+      - name: Start Stream
         run: |
-          ffmpeg -re -i "https://stream.manhajonline.com/quran/stream" \
-            -vn \
-            -c:a aac \
-            -b:a 192k \
-            -ar 44100 \
-            -ac 2 \
-            -f flv "rtmps://dc4-1.rtmp.t.me/s/2599776082:EhXvPrErk4Py95iXkP7rgw"
+          ffmpeg -re -stream_loop -1 -i "media_file" \
+  -vn \
+  -af "volume=2" \
+  -c:a aac \
+  -b:a 128k \
+  -ar 48000 \
+  -ac 2 \
+  -f flv \
+  -flvflags no_duration_filesize \
+  "rtmps://dc4-1.rtmp.t.me/s/3858287888:aMIwoGfAA7q_0IwVJqw0fA"
 
       - name: Done
         run: |
