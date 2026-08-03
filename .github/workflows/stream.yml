@@ -1,55 +1,90 @@
-name: Personal Live Stream (24/7 Auto-Restart)
+name: Stream & Live Relay Runner
+
+concurrency:
+  group: live_stream_singleton
+  cancel-in-progress: false
 
 on:
-  schedule:
-    - cron: '0 */5 * * *'
   workflow_dispatch:
     inputs:
       media_url:
-        description: 'Direct link to media file'
-        required: true
+        description: 'Direct Media URL'
+        required: false
+        default: ''
       rtmp_url:
-        description: 'Full RTMP Server URL with key'
+        description: 'RTMP Stream Target URL'
+        required: false
+        default: ''
+      action_type:
+        description: 'Action: start / stop / clean'
         required: true
-      volume:
-        description: 'Audio Volume Level'
-        required: false
-        default: '1.5'
-      bitrate:
-        description: 'Audio Bitrate'
-        required: false
-        default: '128k'
+        default: 'start'
 
 jobs:
-  live_stream:
+  manage_stream:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repository
+      - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Install FFmpeg
+      - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg
+          sudo apt-get install -y ffmpeg curl procps || true
 
-      - name: Run Continuous Live Stream
+      # 1️⃣ أمر الإيقاف
+      - name: 🛑 [Process Stop Command]
+        if: ${{ github.event.inputs.action_type == 'stop' }}
         run: |
-          # تحديد قيم المدخلات إما من البوت مباشرة أو من Secrets المستودع
-          MEDIA_URL="${{ github.event.inputs.media_url || secrets.STREAM_MEDIA_URL }}"
-          RTMP_URL="${{ github.event.inputs.rtmp_url || secrets.RTMP_SERVER_URL }}"
-          VOL="${{ github.event.inputs.volume || '1.5' }}"
-          BITRATE="${{ github.event.inputs.bitrate || '128k' }}"
+          echo "🛑 جاري إيقاف أي بث نشط..."
+          pkill -9 -f ffmpeg || true
+          rm -rf /tmp/* || true
+          echo "✅ تم إيقاف البث بنجاح."
+          exit 0
 
-          echo "🚀 بدء البث المباشر..."
+      # 2️⃣ أمر تنظيف الـ Runner
+      - name: 🧹 [Process Clean Command]
+        if: ${{ github.event.inputs.action_type == 'clean' }}
+        run: |
+          echo "🧹 جاري تفريغ الذاكرة المؤقتة والـ Cache..."
+          pkill -9 -f ffmpeg || true
+          rm -rf /tmp/* || true
+          echo "✅ تم تنظيف السيرفر بنجاح."
+          exit 0
+
+      # 3️⃣ أمر البث المباشر المستقر
+      - name: 🚀 [Execute Live Stream Direct]
+        if: ${{ github.event.inputs.action_type == 'start' }}
+        run: |
+          MEDIA_URL="${{ github.event.inputs.media_url }}"
+          RTMP_URL="${{ github.event.inputs.rtmp_url }}"
+
+          if [ -z "$MEDIA_URL" ] || [ -z "$RTMP_URL" ]; then
+            echo "❌ خطأ: رابط الملف أو رابط الـ RTMP مفقود!"
+            exit 1
+          fi
+
+          echo "📡 بدء البث المباشر المستقر عبر HTTP..."
           
           while true; do
-            echo "[$(date)] بدء تشغيل سيرفر البث عبر FFmpeg..."
-            
-            ffmpeg -re -stream_loop -1 \
+            echo "[$(date)] تشغيل FFmpeg..."
+            ffmpeg -re \
+              -reconnect 1 \
+              -reconnect_at_eof 1 \
+              -reconnect_streamed 1 \
+              -reconnect_delay_max 10 \
               -i "$MEDIA_URL" \
-              -vn -af "volume=$VOL" -c:a aac -b:a $BITRATE -ar 44100 -ac 2 \
-              -f flv "$RTMP_URL"
-              
-            echo "[$(date)] ⚠️ انقطع الاتصال! جاري إعادة التشغيل خلال 5 ثوانٍ..."
+              -c:v libx264 -preset veryfast -b:v 2500k -maxrate 2500k -bufsize 5000k -pix_fmt yuv420p -g 50 \
+              -c:a aac -b:a 128k -ar 44100 -ac 2 \
+              -f flv "$RTMP_URL" || true
+
+            echo "⚠️ انقطع الاتصال أو انتهى الملف! إعادة البث خلال 5 ثوانٍ..."
             sleep 5
           done
+
+      # 4️⃣ تنظيف تلقائي
+      - name: 🧹 [Post-Job Cleanup]
+        if: always()
+        run: |
+          pkill -9 -f ffmpeg || true
+          rm -rf /tmp/* || true
