@@ -18,7 +18,7 @@ jobs:
 
       - name: Download Media File
         run: |
-          curl -L -o "media_file" "https://archive.org/download/telegram-stream-cloud-06-----------------mp3/06 - علم قلبي غرام.mp3"
+          curl -L -o "media_file" 'https://archive.org/download/telegram-stream-cloud-06-----------------mp3/06%20-%20%D8%B9%D9%84%D9%85%20%D9%82%D9%84%D8%A8%D9%8A%20%D8%BA%D8%B1%D8%A7%D9%85.mp3'
 
       - name: Start Stream
         run: |
@@ -36,4 +36,3 @@ jobs:
       - name: Done
         run: |
           echo "Finished."
-
