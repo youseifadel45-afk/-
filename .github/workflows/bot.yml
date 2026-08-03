@@ -2,8 +2,6 @@ name: Telegram Bot Host
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 */5 * * *'
 
 concurrency:
   group: telegram-bot
@@ -24,7 +22,6 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          cd my_bot
           pip install -r requirements.txt
 
       - name: Run Bot
@@ -34,5 +31,4 @@ jobs:
           REPO_OWNER: ${{ secrets.REPO_OWNER }}
           REPO_NAME: ${{ secrets.REPO_NAME }}
         run: |
-          cd my_bot
           python bot.py
