@@ -1,10 +1,24 @@
-name: Continuous Live Stream
+name: Personal Live Stream (24/7 Auto-Restart)
 
 on:
   schedule:
-    # إعادة تشغيل البث تلقائياً كل 6 ساعات لضمان عدم التوقف
-    - cron: '0 */6 * * *'
+    - cron: '0 */5 * * *'
   workflow_dispatch:
+    inputs:
+      media_url:
+        description: 'Direct link to media file'
+        required: true
+      rtmp_url:
+        description: 'Full RTMP Server URL with key'
+        required: true
+      volume:
+        description: 'Audio Volume Level'
+        required: false
+        default: '1.5'
+      bitrate:
+        description: 'Audio Bitrate'
+        required: false
+        default: '128k'
 
 jobs:
   live_stream:
@@ -18,10 +32,24 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ffmpeg
 
-      - name: Run Live Stream
+      - name: Run Continuous Live Stream
         run: |
-          # استبدل الرابط وسيرفر الـ RTMP بالبيانات الخاصة بك أو المتولدة من البوت
-          ffmpeg -re -stream_loop -1 -i "${{ secrets.STREAM_MEDIA_URL }}" \
-          -c:v libx264 -preset veryfast -b:v 2500k -maxrate 2500k -bufsize 5000k \
-          -pix_fmt yuv420p -g 50 -c:a aac -b:a 128k -ar 44100 -ac 2 \
-          -f flv "${{ secrets.RTMP_SERVER_URL }}/${{ secrets.STREAM_KEY }}"
+          # تحديد قيم المدخلات إما من البوت مباشرة أو من Secrets المستودع
+          MEDIA_URL="${{ github.event.inputs.media_url || secrets.STREAM_MEDIA_URL }}"
+          RTMP_URL="${{ github.event.inputs.rtmp_url || secrets.RTMP_SERVER_URL }}"
+          VOL="${{ github.event.inputs.volume || '1.5' }}"
+          BITRATE="${{ github.event.inputs.bitrate || '128k' }}"
+
+          echo "🚀 بدء البث المباشر..."
+          
+          while true; do
+            echo "[$(date)] بدء تشغيل سيرفر البث عبر FFmpeg..."
+            
+            ffmpeg -re -stream_loop -1 \
+              -i "$MEDIA_URL" \
+              -vn -af "volume=$VOL" -c:a aac -b:a $BITRATE -ar 44100 -ac 2 \
+              -f flv "$RTMP_URL"
+              
+            echo "[$(date)] ⚠️ انقطع الاتصال! جاري إعادة التشغيل خلال 5 ثوانٍ..."
+            sleep 5
+          done
