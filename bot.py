@@ -167,7 +167,7 @@ def show_help(message):
         "📖 **تعليمات الاستخدام:**\n\n"
         "1️⃣ أرسل أي فيديو أو ملف صوتي للبوت لرفعه على السحابة وحفظه في حسابك.\n"
         "2️⃣ اختر '🎬 إنشاء بث جديد' واتبع الخطوات لاختيار الجودة، الصوت، وإدخال سيرفر البث.\n"
-        "3️⃣ سيعطيك البوت زر لترغيل البث مباشرة على GitHub Actions أو أمر جاهز للـ CMD."
+        "3️⃣ سيعطيك البوت زر لتشغيل البث مباشرة على GitHub Actions أو أمر جاهز للـ CMD."
     )
     bot.send_message(message.chat.id, help_text, parse_mode="Markdown")
 
@@ -431,7 +431,6 @@ def step_stream_key(message):
         "اضغط على الزر أدناه لإرسال البث وإضافته إلى حالة (Running) على سيرفرات GitHub مباشرة!"
     )
     
-    # إضافة زر التشغيل المباشر
     markup = types.InlineKeyboardMarkup()
     btn_run = types.InlineKeyboardButton("🚀 بدء البث الآن (Start Stream)", callback_data=f"run_gh_stream")
     markup.add(btn_run)
@@ -446,19 +445,28 @@ def trigger_github_stream(call):
         bot.answer_callback_query(call.id, "❌ لم يتم العثور على جلسة بث نشطة!", show_alert=True)
         return
 
+    # التحقق من وجود بيانات GitHub المطلوبة
+    if not GH_PAT or not REPO_OWNER or not REPO_NAME:
+        bot.send_message(
+            call.message.chat.id,
+            "❌ **خطأ في الإعدادات:**\nلم يتم التعرف على متغيّرات (GH_PAT أو REPO_OWNER أو REPO_NAME) داخل البوت.\n"
+            "تأكد من إضافتها في قسم Secrets لملف `bot.yml`.",
+            parse_mode="Markdown"
+        )
+        return
+
     data = stream_sessions[uid]
     full_rtmp = f"{data['rtmp'].rstrip('/')}/{data['key']}"
     
     bot.answer_callback_query(call.id, "⏳ جاري إرسال إشارة البث إلى GitHub Actions...")
     
-    # طلب لـ GitHub API لتشغيل workflow_dispatch
     url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/actions/workflows/stream.yml/dispatches"
     headers = {
-        "Authorization": f"Bearer {GH_PAT}",
+        "Authorization": f"token {GH_PAT}",
         "Accept": "application/vnd.github+json"
     }
     payload = {
-        "ref": "main",  # أو الفرع الرئيسي master
+        "ref": "main",  # تأكد أنه اسم الفرع الرئيسي لديك (main أو master)
         "inputs": {
             "media_url": data["url"],
             "rtmp_url": full_rtmp,
@@ -469,7 +477,8 @@ def trigger_github_stream(call):
     
     try:
         res = requests.post(url, headers=headers, json=payload)
-        if res.status_code == 24:
+        # تصحيح كود النجاح للـ GitHub API (204 No Content)
+        if res.status_code == 204:
             bot.send_message(
                 call.message.chat.id,
                 "✅ **تم إطلاق البث بنجاح!**\n\n"
@@ -483,7 +492,7 @@ def trigger_github_stream(call):
                 f"❌ **فشل إطلاق البث تلقائياً!**\n"
                 f"كود الاستجابة: `{res.status_code}`\n"
                 f"التفاصيل: `{res.text}`\n\n"
-                f"💡 تأكد من ضبط الـ Secrets (`GH_PAT`, `REPO_OWNER`, `REPO_NAME`) في GitHub.",
+                f"💡 تأكد من صحة التوكن `GH_PAT` واسم الحساب والمستودع.",
                 parse_mode="Markdown"
             )
     except Exception as e:
@@ -498,3 +507,4 @@ while True:
     except Exception as e:
         print(f"⚠️ خطأ بالاتصال، إعادة التوصيل: {e}")
         time.sleep(3)
+
