@@ -1,6 +1,5 @@
 name: Python Bot CI Test
 
-# تفعيل الفحص التلقائي عند الرفع (Push) أو عند عمل Pull Request على فرع main
 on:
   push:
     branches: [ "main" ]
@@ -9,34 +8,28 @@ on:
 
 jobs:
   build_and_test:
-    # تشغيل الفحص على بيئة خادم أوبونتو (لينكس) تماماً مثل استضافتك الكبيرة
     runs-on: ubuntu-latest
 
     steps:
-    # 1. سحب كود المشروع داخل خادم جيت هاب
     - name: Checkout code
       uses: actions/checkout@v4
 
-    # 2. تهيئة وتثبيت إصدار بايثون المناسب (Python 3.11)
     - name: Set up Python 3.11
       uses: actions/setup-python@v5
       with:
         python-version: "3.11"
 
-    # 3. تحديث أداة pip وتثبيت مكتبات البوت المحددة في requirements.txt
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-    # 4. تحميل متصفح كروميوم والمكونات الرسومية اللازمة لتشغيل Playwright في الخلفية
+    # [تم التعديل]: تشغيل التثبيت باستخدام python -m لتفادي خطأ السيرفر وتجنب استخدام sudo
     - name: Install Playwright Browsers and Deps
       run: |
-        playwright install chromium
-        sudo playwright install-deps
+        python -m playwright install chromium
+        sudo python -m playwright install-deps
 
-    # 5. الفحص البرمجي السريع للتأكد من عدم وجود أخطاء في صياغة الأكواد والـ Syntax
     - name: Lint and Syntax Check
       run: |
         python -m compileall bot.py
-
